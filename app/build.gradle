@@ -20,9 +20,9 @@ android {
         shop {
             // The keystore is written by the GitHub workflow from the ANDROID_KEYSTORE secret.
             storeFile file('laundry.keystore')
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "laundry-control"
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "6qXJHaYVx6pFcNLxlYTM"
             keyAlias 'laundry'
-            keyPassword System.getenv("KEYSTORE_PASSWORD") ?: "laundry-control"
+            keyPassword System.getenv("KEYSTORE_PASSWORD") ?: "6qXJHaYVx6pFcNLxlYTM"
         }
     }
 

@@ -28,15 +28,14 @@ jobs:
               https://www.gstatic.com/firebasejs/${FIREBASE_JS}/firebase-$f-compat.js
           done
 
-      - name: Restore the shop signing key
+      - name: Signing key
         env:
           ANDROID_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE }}
         run: |
-          if [ -z "$ANDROID_KEYSTORE" ]; then
-            echo "::error::The ANDROID_KEYSTORE secret is missing. See SETUP.md, step 3."
-            exit 1
-          fi
-          echo "$ANDROID_KEYSTORE" | base64 -d > app/laundry.keystore
+          # Uses the key kept in this private repository (app/laundry.keystore).
+          # If an ANDROID_KEYSTORE secret is added later, it takes priority.
+          if [ -n "$ANDROID_KEYSTORE" ]; then echo "$ANDROID_KEYSTORE" | base64 -d > app/laundry.keystore; fi
+          test -s app/laundry.keystore
 
       - uses: actions/setup-java@v4
         with:

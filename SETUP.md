@@ -35,7 +35,9 @@ To remove a staff member, delete them under **Users** and remove their email fro
 
 Every change pushed to this repository's `main` branch builds a new APK automatically (**Actions** tab). Each build appears on the **Releases** page as `LaundryControl-1.0.N.apk`.
 
-The build signs the app with the shop's key, stored as two repository secrets: `ANDROID_KEYSTORE` and `KEYSTORE_PASSWORD` (**Settings → Secrets and variables → Actions**). Keep the backup copy of the key you received. Without the same key, phones cannot install updates over the existing app.
+The build signs the app with the shop's own key, kept in this private repository at `app/laundry.keystore` (its password is in `app/build.gradle`). Every update must be signed with this same key, or phones refuse to install it over the existing app, so keep the backup copy you received.
+
+**Keep this repository private.** If you ever want to make it public (for example for the free laptop version below), first move the key into repository secrets: add `ANDROID_KEYSTORE` (the key file in base64) and `KEYSTORE_PASSWORD` under **Settings → Secrets and variables → Actions**, then delete `app/laundry.keystore` and the password from `app/build.gradle`.
 
 ## 4. Install on an Android phone
 
@@ -59,7 +61,7 @@ Install the newer APK from **Releases** over the old one. Records are in the clo
 
 ## Using it on a laptop
 
-The workflow also publishes the screens to GitHub Pages. This needs **Settings → Pages → Source: GitHub Actions**, and GitHub only offers Pages for private repositories on a paid plan. If the repository is made public, Pages is free: the code becomes visible, but the shop's records stay protected by the sign-in and the database rules, and the signing key stays in secrets.
+The workflow also publishes the screens to GitHub Pages. This needs **Settings → Pages → Source: GitHub Actions**, and GitHub only offers Pages for private repositories on a paid plan. If the repository is made public, Pages is free: the code becomes visible, but the shop's records stay protected by the sign-in and the database rules. Move the signing key to secrets first, as described in step 3.
 
 ## Daily use
 
