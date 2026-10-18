@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Only the accounts listed here can open the shop records.
+    // Use the exact email addresses you create in Firebase → Authentication → Users.
+    function isStaff() {
+      return request.auth != null
+        && request.auth.token.email in [
+          'owner@example.com',
+          'cashier@example.com'
+        ];
+    }
+
+    match /{document=**} {
+      allow read, write: if isStaff();
+    }
+  }
+}

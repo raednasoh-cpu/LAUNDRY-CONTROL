@@ -1,0 +1,44 @@
+plugins {
+    id 'com.android.application'
+}
+
+def runNumber = (System.getenv("GITHUB_RUN_NUMBER") ?: "1").toInteger()
+
+android {
+    namespace 'com.laundrycontrol.app'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.laundrycontrol.app"
+        minSdk 26
+        targetSdk 35
+        versionCode runNumber
+        versionName "1.0.${runNumber}"
+    }
+
+    signingConfigs {
+        shop {
+            // The keystore is written by the GitHub workflow from the ANDROID_KEYSTORE secret.
+            storeFile file('laundry.keystore')
+            storePassword System.getenv("KEYSTORE_PASSWORD") ?: "laundry-control"
+            keyAlias 'laundry'
+            keyPassword System.getenv("KEYSTORE_PASSWORD") ?: "laundry-control"
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.shop
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.12.1'
+}

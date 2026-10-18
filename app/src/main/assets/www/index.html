@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B6E79">
+<link rel="icon" href="icon.svg">
+<title>Laundry Control</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: operations console — side rail on laptop, bottom tab bar on phone; summary first, ledgers below */
+:root{
+  --bg:#EEF3F4; --surface:#FFFFFF; --sunk:#F6F9F9; --ink:#132B33; --muted:#5A7077; --line:#D8E2E4;
+  --accent:#0B6E79; --accent-ink:#FFFFFF; --accent-soft:#DCEDEF; --cost:#C3D3D6;
+  --good:#2C7A4B; --good-soft:#E1F1E7; --warn:#A86A12; --warn-soft:#FBEFD9; --bad:#B8372A; --bad-soft:#F8E1DE;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-num:"IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D181B; --surface:#142327; --sunk:#101E21; --ink:#E3EDEF; --muted:#8EA4AA; --line:#24383D;
+  --accent:#4DB3BE; --accent-ink:#06262A; --accent-soft:#163B41; --cost:#33494F;
+  --good:#5DBF89; --good-soft:#173328; --warn:#E3A74B; --warn-soft:#3A2D16; --bad:#EC7B6C; --bad-soft:#3D1F1B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D181B; --surface:#142327; --sunk:#101E21; --ink:#E3EDEF; --muted:#8EA4AA; --line:#24383D;
+  --accent:#4DB3BE; --accent-ink:#06262A; --accent-soft:#163B41; --cost:#33494F;
+  --good:#5DBF89; --good-soft:#173328; --warn:#E3A74B; --warn-soft:#3A2D16; --bad:#EC7B6C; --bad-soft:#3D1F1B; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:22px} h2{font-size:17px} h3{font-size:14px}
+.app{display:grid;grid-template-columns:216px 1fr;min-height:100vh}
+.rail{background:var(--surface);border-right:1px solid var(--line);padding-block:20px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:14px;display:flex;flex-direction:column;gap:22px;position:sticky;top:0;height:100vh}
+.brand{display:flex;gap:10px;align-items:center}
+.brand svg{flex:none}
+.brand b{font-family:var(--f-display);font-size:17px;display:block;line-height:1.1}
+.brand span{font-size:11px;color:var(--muted)}
+nav{display:flex;flex-direction:column;gap:2px}
+nav button{all:unset;cursor:pointer;display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:8px;color:var(--muted);font-weight:500}
+nav button svg{width:18px;height:18px;flex:none}
+nav button:hover{background:var(--sunk);color:var(--ink)}
+nav button[aria-current="page"]{background:var(--accent-soft);color:var(--accent)}
+nav button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.badge{margin-left:auto;background:var(--bad);color:#fff;font-size:11px;border-radius:9px;padding:0 6px;font-family:var(--f-num)}
+main{min-width:0;padding-block:20px 40px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between}
+.top p{margin:2px 0 0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:inherit;font-weight:600;cursor:pointer;border-radius:8px;padding:8px 13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:4px 9px;font-size:12px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--bad)}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px;min-width:0}
+.panel-h{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.panel-h small{color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+.grid2 > *{min-width:0}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+.kpi label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:600}
+.kpi .v{font-family:var(--f-num);font-size:22px;font-weight:500}
+.kpi .v small{font-size:12px;color:var(--muted);margin-left:3px}
+.kpi .s{font-size:12px;color:var(--muted)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+td.r,th.r{text-align:right}
+td.num,td .num{white-space:nowrap}
+.pill{display:inline-block;font-size:11px;font-weight:600;border-radius:20px;padding:1px 8px;white-space:nowrap}
+.pill.ok{background:var(--good-soft);color:var(--good)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.bad{background:var(--bad-soft);color:var(--bad)} .pill.n{background:var(--sunk);color:var(--muted);border:1px solid var(--line)}
+.alerts{display:flex;flex-direction:column;gap:8px;margin:0;padding:0;list-style:none}
+.alerts li{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border-radius:8px;background:var(--sunk);border-left:3px solid var(--warn)}
+.alerts li.bad{border-left-color:var(--bad)}
+.alerts li div{flex:1;min-width:0}
+.alerts li b{display:block}
+.alerts li span{color:var(--muted);font-size:12px}
+.empty{color:var(--muted);padding:10px 0}
+.stmt td{padding:6px 8px}
+.stmt tr.sec td{font-weight:600;padding-top:12px;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line)}
+.stmt tr.tot td{font-weight:600;border-top:2px solid var(--ink)}
+.stmt td.ind{padding-left:20px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg button{all:unset;cursor:pointer;padding:7px 14px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.chart svg{width:100%;height:auto;display:block}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.barrow{display:grid;grid-template-columns:minmax(90px,1.2fr) 2fr auto;gap:10px;align-items:center;padding:5px 0}
+.barrow .track{height:8px;background:var(--sunk);border-radius:4px;overflow:hidden}
+.barrow .fill{height:100%;background:var(--accent);border-radius:4px}
+.banner{background:var(--warn-soft);color:var(--ink);border:1px solid var(--warn);border-radius:var(--r);padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.banner.info{background:var(--accent-soft);border-color:var(--accent)}
+/* sheet */
+.scrim{position:fixed;inset:0;background:rgba(5,15,18,.45);z-index:40;display:flex;align-items:center;justify-content:center;padding:16px}
+.sheet{background:var(--surface);border:1px solid var(--line);border-radius:14px;width:min(480px,100%);max-height:calc(100% - 32px);overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.field.full{grid-column:1/-1}
+.field label{font-size:12px;font-weight:600;color:var(--muted)}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:7px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:120px;font-family:var(--f-num);font-size:12px}
+.hint{font-size:12px;color:var(--muted)}
+.sheet-f{display:flex;justify-content:flex-end;gap:8px}
+.err{color:var(--bad);font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom, 0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:8px;z-index:60;font-weight:500}
+.tabbar{display:none}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .rail{display:none}
+  main{padding-bottom:calc(90px + env(safe-area-inset-bottom, 0px))}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom, 0px);padding-left:env(safe-area-inset-left, 0px);padding-right:env(safe-area-inset-right, 0px)}
+  .tabbar button{all:unset;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 0 7px;font-size:10px;font-weight:600;color:var(--muted);cursor:pointer;position:relative}
+  .tabbar button svg{width:20px;height:20px}
+  .tabbar button[aria-current="page"]{color:var(--accent)}
+  .tabbar .dot{position:absolute;top:5px;left:calc(50% + 7px);width:7px;height:7px;border-radius:50%;background:var(--bad)}
+  .grid2{grid-template-columns:1fr}
+  .kpis{grid-template-columns:1fr 1fr}
+}
+@media (max-width:460px){ .fields{grid-template-columns:1fr} .kpi .v{font-size:19px} h1{font-size:20px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+html{padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+img{max-width:100%}
+.gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding-block:24px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+.gate-card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:22px;width:min(440px,100%);display:flex;flex-direction:column;gap:14px}
+.gate-card p{margin:0;color:var(--muted)}
+.gate-card ol{margin:0;padding-left:18px;color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:4px}
+.acct{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;color:var(--muted);font-size:12px;margin:0}
+.linkbtn{all:unset;cursor:pointer;color:var(--accent);font-weight:600}
+.linkbtn:focus-visible{outline:2px solid var(--accent)}
+.rail-foot{margin-top:auto;font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:6px;word-break:break-all}
+</style>
+<script src="js/firebase-app-compat.js"></script>
+<script src="js/firebase-auth-compat.js"></script>
+<script src="js/firebase-firestore-compat.js"></script>
+</head><body>
+
+<div id="gate" class="gate" hidden></div>
+<div class="app" id="app" hidden>
+  <aside class="rail">
+    <div class="brand">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="2" y="2" width="30" height="30" rx="7" fill="var(--accent)"/><circle cx="17" cy="19" r="8" fill="none" stroke="var(--accent-ink)" stroke-width="2.2"/><path d="M11 20c2-2 4 2 6 0s4 2 6 0" fill="none" stroke="var(--accent-ink)" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7.5" r="1.4" fill="var(--accent-ink)"/><circle cx="13.5" cy="7.5" r="1.4" fill="var(--accent-ink)"/></svg>
+      <div><b>Laundry Control</b><span>Sales · Costs · Stock</span></div>
+    </div>
+    <nav id="sidenav"></nav>
+    <div class="rail-foot" id="railfoot"></div>
+  </aside>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+<div class="tabbar" id="tabbar" hidden></div>
+<div id="modal"></div>
+
+<script>
+(function(){
+const ICONS={
+ dash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>',
+ sales:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>',
+ expenses:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 5 13h6l-1 9 8-11h-6z"/></svg>',
+ stock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 3h6v3l2 2v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V8l2-2z"/><path d="M7 12h10"/></svg>',
+ suppliers:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 7h12v10H2zM14 10h4l3 3v4h-7"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+ reports:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>'
+};
+const VIEWS=[['dash','Dashboard'],['sales','Sales'],['expenses','Expenses'],['stock','Stock'],['suppliers','Suppliers'],['reports','Reports']];
+const COLS=['sales','expenses','items','purchases','consumption','suppliers','services'];
+const EXP_CATS=['Water','Electricity','Salaries','Rent','Maintenance','Other'];
+const S={}; COLS.forEach(c=>S[c]=[]);
+let db=null, auth=null, user=null, dbErr='', view='dash', subs=[];
+let rep={mode:'day',date:null};
+try{const v=localStorage.getItem('lc_view'); if(v&&VIEWS.some(x=>x[0]===v)) view=v;}catch(e){}
+if(/^#(dash|sales|expenses|stock|suppliers|reports)$/.test(location.hash)) view=location.hash.slice(1);
+
+/* ---------- helpers ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const pd=s=>{const[a,b,c]=String(s).split('-').map(Number);return new Date(a,(b||1)-1,c||1)};
+const addDays=(s,n)=>{const d=pd(s);d.setDate(d.getDate()+n);return ymd(d)};
+const today=()=>ymd(new Date());
+const diff=(a,b)=>Math.round((pd(b)-pd(a))/864e5);
+const dim=s=>{const d=pd(s);return new Date(d.getFullYear(),d.getMonth()+1,0).getDate()};
+const monthStart=s=>s.slice(0,8)+'01';
+const monthEnd=s=>s.slice(0,8)+pad(dim(s));
+const n=v=>{const x=parseFloat(v);return isFinite(x)?x:0};
+const sar=(v,dec=0)=>n(v).toLocaleString('en-US',{minimumFractionDigits:dec,maximumFractionDigits:dec});
+const money=v=>'<span class="num">'+sar(v)+'</span>';
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const fmtD=s=>{const d=pd(s);return d.getDate()+' '+MONTHS[d.getMonth()]};
+const fmtDL=s=>{const d=pd(s);return DOW[d.getDay()]+' '+d.getDate()+' '+MONTHS[d.getMonth()]+' '+d.getFullYear()};
+const byId=(col,id)=>S[col].find(x=>x.id===id);
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2200)}
+
+/* ---------- calculations ---------- */
+function range(mode,anchor){
+  if(mode==='week'){const d=pd(anchor);const s=addDays(anchor,-d.getDay());return[s,addDays(s,6)]}
+  if(mode==='month')return[monthStart(anchor),monthEnd(anchor)];
+  return[anchor,anchor];
+}
+function overlapDays(a,b,c,d){const s=a>c?a:c, e=b<d?b:d; return s>e?0:diff(s,e)+1}
+function avgCost(item){let q=0,t=0;S.purchases.forEach(p=>{if(p.itemId===item.id){q+=n(p.qty);t+=n(p.qty)*n(p.unitCost)}});return q>0?t/q:n(item.cost)}
+function stockOf(item){let s=n(item.opening);S.purchases.forEach(p=>{if(p.itemId===item.id)s+=n(p.qty)});S.consumption.forEach(c=>{if(c.itemId===item.id)s-=n(c.qty)});return s}
+function expenseIn(e,a,b){
+  if(e.period==='month'){const ms=monthStart(e.date),me=monthEnd(e.date);return n(e.amount)/dim(e.date)*overlapDays(a,b,ms,me)}
+  return e.date>=a&&e.date<=b?n(e.amount):0;
+}
+function metrics(a,b){
+  const inR=d=>d>=a&&d<=b;
+  const sales=S.sales.filter(x=>inR(x.date));
+  const bySvc={}; let revenue=0,pieces=0;
+  sales.forEach(x=>{revenue+=n(x.total);pieces+=n(x.qty);const k=x.service||'Other';bySvc[k]=bySvc[k]||{qty:0,total:0};bySvc[k].qty+=n(x.qty);bySvc[k].total+=n(x.total)});
+  const cons=S.consumption.filter(x=>inR(x.date)); let consCost=0; const byItem={};
+  cons.forEach(c=>{consCost+=n(c.cost);const it=byId('items',c.itemId);const k=it?it.name:'Removed item';byItem[k]=byItem[k]||{qty:0,cost:0,unit:it?it.unit:''};byItem[k].qty+=n(c.qty);byItem[k].cost+=n(c.cost)});
+  const exp={};EXP_CATS.forEach(c=>exp[c]=0);
+  S.expenses.forEach(e=>{const v=expenseIn(e,a,b);if(v){const c=EXP_CATS.includes(e.category)?e.category:'Other';exp[c]+=v}});
+  const opex=EXP_CATS.reduce((s,c)=>s+exp[c],0);
+  const cost=consCost+opex, net=revenue-cost;
+  return{revenue,pieces,bySvc,consCost,byItem,exp,opex,cost,net,margin:revenue?net/revenue*100:0,count:sales.length};
+}
+function payables(){
+  const t=today();
+  return S.purchases.map(p=>{const bal=n(p.qty)*n(p.unitCost)-n(p.paid);let st='paid';
+    if(bal>0.005){st=!p.dueDate?'open':p.dueDate<t?'overdue':diff(t,p.dueDate)<=7?'due':'open'}
+    return{...p,total:n(p.qty)*n(p.unitCost),bal,st}}).filter(p=>p.bal>0.005).sort((a,b)=>(a.dueDate||'9')<(b.dueDate||'9')?-1:1);
+}
+function alerts(){
+  const out=[];
+  S.items.forEach(it=>{const s=stockOf(it),m=n(it.min);if(s<=m)out.push({kind:s<=0?'bad':'warn',title:it.name+(s<=0?' is out of stock':' is below minimum'),sub:'In stock '+sar(s,1)+' '+(it.unit||'')+' · minimum '+sar(m,1)+' '+(it.unit||''),go:'stock'})});
+  payables().forEach(p=>{if(p.st==='overdue'||p.st==='due'){const sup=byId('suppliers',p.supplierId);out.push({kind:p.st==='overdue'?'bad':'warn',title:(sup?sup.name:'Supplier')+(p.st==='overdue'?' payment overdue':' payment due soon'),sub:'SAR '+sar(p.bal)+' · due '+fmtD(p.dueDate)+(p.st==='overdue'?' ('+diff(p.dueDate,today())+' days late)':' (in '+diff(today(),p.dueDate)+' days)'),go:'suppliers'})}});
+  return out.sort((a,b)=>a.kind===b.kind?0:a.kind==='bad'?-1:1);
+}
+
+/* ---------- chart ---------- */
+function trendChart(a,b){
+  const days=[];for(let d=a;d<=b;d=addDays(d,1))days.push(d);
+  const rows=days.map(d=>{const m=metrics(d,d);return{d,rev:m.revenue,cost:m.cost,net:m.net}});
+  const W=640,H=210,L=44,R=8,T=12,B=26,pw=W-L-R,ph=H-T-B;
+  let max=Math.max(1,...rows.map(r=>Math.max(r.rev,r.cost)));
+  const step=Math.pow(10,Math.floor(Math.log10(max)));const nice=[1,2,2.5,5,10].map(x=>x*step).find(x=>x*4>=max)||step*10;max=nice*4;
+  const y=v=>T+ph-v/max*ph; const gw=pw/rows.length; const bw=Math.max(2,Math.min(14,gw*0.34));
+  let g='';
+  for(let i=0;i<=4;i++){const v=nice*i;g+=`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${y(v)+4}" text-anchor="end" font-size="10" fill="var(--muted)" font-family="IBM Plex Mono,monospace">${v>=1000?sar(v/1000,v%1000?1:0)+'k':sar(v)}</text>`}
+  const every=Math.ceil(rows.length/10);
+  rows.forEach((r,i)=>{const cx=L+gw*i+gw/2;
+    g+=`<rect x="${cx-bw-1}" y="${y(r.rev)}" width="${bw}" height="${Math.max(0,T+ph-y(r.rev))}" rx="2" fill="var(--accent)"><title>${fmtD(r.d)} revenue SAR ${sar(r.rev)}</title></rect>`;
+    g+=`<rect x="${cx+1}" y="${y(r.cost)}" width="${bw}" height="${Math.max(0,T+ph-y(r.cost))}" rx="2" fill="var(--cost)"><title>${fmtD(r.d)} costs SAR ${sar(r.cost)}</title></rect>`;
+    if(i%every===0)g+=`<text x="${cx}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${pd(r.d).getDate()}${rows.length<=7?' '+DOW[pd(r.d).getDay()]:''}</text>`;
+  });
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Daily revenue and costs">${g}</svg></div><div class="legend"><span><i style="background:var(--accent)"></i>Revenue</span><span><i style="background:var(--cost)"></i>Costs (consumables + allocated expenses)</span></div>`;
+}
+function barList(obj,valKey,fmt){
+  const ent=Object.entries(obj).sort((a,b)=>b[1][valKey]-a[1][valKey]);
+  if(!ent.length)return '<p class="empty">Nothing recorded in this period.</p>';
+  const max=Math.max(...ent.map(e=>e[1][valKey]))||1;
+  return ent.map(([k,v])=>`<div class="barrow"><span>${esc(k)}</span><div class="track"><div class="fill" style="width:${v[valKey]/max*100}%"></div></div><span class="num">${fmt(v)}</span></div>`).join('');
+}
+function statement(m,title){
+  const svc=Object.entries(m.bySvc).sort((a,b)=>b[1].total-a[1].total);
+  let h=`<table class="stmt"><tbody><tr class="sec"><td>Revenue</td><td class="r">SAR</td></tr>`;
+  h+=svc.length?svc.map(([k,v])=>`<tr><td class="ind">${esc(k)} <span class="hint">× ${sar(v.qty)}</span></td><td class="r num">${sar(v.total,2)}</td></tr>`).join(''):'<tr><td class="ind hint">No sales recorded</td><td class="r num">0.00</td></tr>';
+  h+=`<tr class="tot"><td>Total revenue</td><td class="r num">${sar(m.revenue,2)}</td></tr>`;
+  h+=`<tr class="sec"><td>Costs</td><td></td></tr><tr><td class="ind">Detergents &amp; materials used</td><td class="r num">${sar(m.consCost,2)}</td></tr>`;
+  EXP_CATS.forEach(c=>{h+=`<tr><td class="ind">${c==='Salaries'?'Labor salaries':c==='Water'||c==='Electricity'?c+' bill':c}</td><td class="r num">${sar(m.exp[c],2)}</td></tr>`});
+  h+=`<tr class="tot"><td>Total costs</td><td class="r num">${sar(m.cost,2)}</td></tr>`;
+  h+=`<tr class="tot"><td>${m.net>=0?'Net profit':'Net loss'}</td><td class="r num ${m.net>=0?'pos':'neg'}">${sar(m.net,2)}</td></tr></tbody></table>`;
+  return h;
+}
+
+/* ---------- nav ---------- */
+function renderNav(){
+  const al=alerts().length;
+  $('#railfoot').innerHTML=user?`<span>${esc(user.email)}</span><button class="linkbtn" data-act="signOut">Sign out</button>`:'';
+  $('#sidenav').innerHTML=VIEWS.map(([k,l])=>`<button data-go="${k}" ${view===k?'aria-current="page"':''}>${ICONS[k]}${l}${k==='dash'&&al?`<span class="badge">${al}</span>`:''}</button>`).join('');
+  $('#tabbar').innerHTML=VIEWS.map(([k,l])=>`<button data-go="${k}" ${view===k?'aria-current="page"':''}>${ICONS[k]}${l}${k==='dash'&&al?'<span class="dot"></span>':''}</button>`).join('');
+}
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-go]');if(g){view=g.dataset.go;try{localStorage.setItem('lc_view',view)}catch(_){}render();window.scrollTo(0,0);return}
+  const a=e.target.closest('[data-act]');if(a)ACT[a.dataset.act](a.dataset,a);
+});
+
+/* ---------- views ---------- */
+function sampleBanner(){
+  let h='';
+  if(!navigator.onLine)h+=`<div class="banner info"><span><b>Offline.</b> New entries are kept on this phone and sync automatically when the connection returns.</span></div>`;
+  if(dbErr)h+=`<div class="banner"><span>${esc(dbErr)}</span></div>`;
+  const has=COLS.some(c=>S[c].some(x=>x.sample)), empty=COLS.every(c=>!S[c].length);
+  if(empty&&view==='dash')h+=`<div class="banner info"><span><b>No records yet.</b> Start with the price list, stock items and suppliers, or load example data to see how the reports look.</span><button class="btn small" data-act="loadSamples" id="ldx">Load example data</button></div>`;
+  else if(has)h+=`<div class="banner"><span><b>Example data.</b> The figures below are samples. Clear them before entering your real records.</span><button class="btn small" data-act="clearSamples" id="clr">Clear example data</button></div>`;
+  return h;
+}
+function vDash(){
+  const t=today(), m=metrics(t,t), mtd=metrics(monthStart(t),t), y=metrics(addDays(t,-1),addDays(t,-1));
+  const al=alerts();
+  const top=Object.fromEntries(Object.entries(mtd.bySvc));
+  return `${sampleBanner()}
+  <div class="top"><div><h1>Today's position</h1><p>${fmtDL(t)} · amounts in SAR</p></div>
+  <div class="actions"><button class="btn primary" data-act="addSale">+ Sale</button><button class="btn" data-act="addCons">Use materials</button><button class="btn" data-act="addExp">+ Expense</button></div></div>
+  <div class="kpis">
+   <div class="kpi"><label>Sales today</label><div class="v">${sar(m.revenue)}</div><div class="s">${sar(m.pieces)} pieces · yesterday ${sar(y.revenue)}</div></div>
+   <div class="kpi"><label>Net today</label><div class="v ${m.net>=0?'pos':'neg'}">${sar(m.net)}</div><div class="s">after ${sar(m.cost)} costs</div></div>
+   <div class="kpi"><label>Month to date</label><div class="v">${sar(mtd.revenue)}</div><div class="s">${MONTHS[pd(t).getMonth()]} 1–${pd(t).getDate()} sales</div></div>
+   <div class="kpi"><label>MTD net profit</label><div class="v ${mtd.net>=0?'pos':'neg'}">${sar(mtd.net)}</div><div class="s">margin ${sar(mtd.margin,1)}%</div></div>
+  </div>
+  <div class="grid2">
+   <section class="panel"><div class="panel-h"><h2>Last 14 days</h2><small>Revenue vs. costs per day</small></div>${trendChart(addDays(t,-13),t)}</section>
+   <section class="panel"><div class="panel-h"><h2>Alerts</h2>${al.length?`<span class="pill bad">${al.length} open</span>`:'<span class="pill ok">All clear</span>'}</div>
+    ${al.length?`<ul class="alerts">${al.map(x=>`<li class="${x.kind}"><div><b>${esc(x.title)}</b><span>${esc(x.sub)}</span></div><button class="btn small" data-go="${x.go}">View</button></li>`).join('')}</ul>`:'<p class="empty">No low stock items and no supplier payments due in the next 7 days.</p>'}</section>
+  </div>
+  <div class="grid2">
+   <section class="panel"><div class="panel-h"><h2>Today's balance</h2><small>Monthly bills are spread across the days of the month</small></div><div class="tbl">${statement(m)}</div></section>
+   <section class="panel"><div class="panel-h"><h2>Services this month</h2><small>by revenue</small></div>${barList(top,'total',v=>sar(v.total))}</section>
+  </div>
+  <p class="acct"><span>Signed in as <b>${esc(user?user.email:'')}</b></span><button class="linkbtn" data-act="signOut">Sign out</button></p>`;
+}
+function vSales(){
+  const list=[...S.sales].sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0).slice(0,60);
+  return `${sampleBanner()}<div class="top"><div><h1>Sales</h1><p>Counts and prices taken from the POS, by service</p></div>
+  <div class="actions"><button class="btn" data-act="importPos">Import POS file</button><button class="btn primary" data-act="addSale">+ Record sale</button></div></div>
+  <div class="grid2">
+  <section class="panel"><div class="panel-h"><h2>Recent entries</h2><small>latest 60</small></div>
+   ${list.length?`<div class="tbl"><table><thead><tr><th>Date</th><th>Service</th><th class="r">Qty</th><th class="r">Price</th><th class="r">Total</th><th></th></tr></thead><tbody>
+   ${list.map(s=>`<tr><td class="num">${fmtD(s.date)}</td><td>${esc(s.service)}${s.source==='POS'?' <span class="pill n">POS</span>':''}</td><td class="r num">${sar(s.qty)}</td><td class="r num">${sar(s.price,2)}</td><td class="r num">${sar(s.total,2)}</td><td class="r">${delBtn('sales',s.id)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">No sales yet. Record a sale or import the POS daily export.</p>'}
+  </section>
+  <section class="panel"><div class="panel-h"><h2>Price list</h2><button class="btn small" data-act="addService">+ Service</button></div>
+   ${S.services.length?`<table><thead><tr><th>Service</th><th class="r">SAR</th><th></th></tr></thead><tbody>${[...S.services].sort((a,b)=>a.name.localeCompare(b.name)).map(s=>`<tr><td>${esc(s.name)}</td><td class="r num">${sar(s.price,2)}</td><td class="r">${delBtn('services',s.id)}</td></tr>`).join('')}</tbody></table>`:'<p class="empty">Add the services you sell so prices fill in automatically.</p>'}
+  </section></div>`;
+}
+function vExpenses(){
+  const t=today(),list=[...S.expenses].sort((a,b)=>a.date<b.date?1:-1).slice(0,80);
+  const mtd=metrics(monthStart(t),monthEnd(t));
+  return `${sampleBanner()}<div class="top"><div><h1>Expenses</h1><p>Water and electricity bills, salaries, rent, maintenance and other costs</p></div>
+  <div class="actions"><button class="btn primary" data-act="addExp">+ Add expense</button></div></div>
+  <div class="grid2">
+  <section class="panel"><div class="panel-h"><h2>Recorded expenses</h2></div>
+  ${list.length?`<div class="tbl"><table><thead><tr><th>Date</th><th>Category</th><th>Applies to</th><th class="r">SAR</th><th></th></tr></thead><tbody>
+  ${list.map(e=>`<tr><td class="num">${fmtD(e.date)}</td><td>${esc(e.category)}${e.note?`<div class="hint">${esc(e.note)}</div>`:''}${n(e.usage)?`<div class="hint num">${sar(e.usage)} ${e.category==='Water'?'m³':e.category==='Electricity'?'kWh':''}</div>`:''}</td><td>${e.period==='month'?`<span class="pill n">Whole ${MONTHS[pd(e.date).getMonth()]}</span>`:'<span class="pill n">That day</span>'}</td><td class="r num">${sar(e.amount,2)}</td><td class="r">${delBtn('expenses',e.id)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">No expenses yet.</p>'}
+  </section>
+  <section class="panel"><div class="panel-h"><h2>${MONTHS[pd(t).getMonth()]} by category</h2><small>full month</small></div>
+   ${barList(Object.fromEntries(EXP_CATS.map(c=>[c,{v:mtd.exp[c]}]).filter(x=>x[1].v>0)),'v',v=>sar(v.v))}
+   <p class="hint">Choose “Whole month” for monthly bills, rent and salaries. The amount is spread evenly over each day so the daily balance stays realistic.</p>
+  </section></div>`;
+}
+function vStock(){
+  const mv=[...S.purchases.map(p=>({...p,k:'in'})),...S.consumption.map(c=>({...c,k:'out'}))].sort((a,b)=>a.date<b.date?1:-1).slice(0,40);
+  let value=0;
+  const rows=[...S.items].sort((a,b)=>a.name.localeCompare(b.name)).map(it=>{const s=stockOf(it),m=n(it.min),c=avgCost(it);value+=Math.max(0,s)*c;
+    const st=s<=0?'<span class="pill bad">Out</span>':s<=m?'<span class="pill warn">Reorder</span>':'<span class="pill ok">OK</span>';
+    return `<tr><td>${esc(it.name)}</td><td class="r num">${sar(s,1)}</td><td>${esc(it.unit)}</td><td class="r num">${sar(m,1)}</td><td class="r num">${sar(c,2)}</td><td class="r num">${sar(Math.max(0,s)*c)}</td><td>${st}</td><td class="r">${delBtn('items',it.id)}</td></tr>`}).join('');
+  return `${sampleBanner()}<div class="top"><div><h1>Materials stock</h1><p>Purchases add to stock, daily usage subtracts from it</p></div>
+  <div class="actions"><button class="btn" data-act="addItem">+ New item</button><button class="btn" data-act="addPurchase">Purchase</button><button class="btn primary" data-act="addCons">Record usage</button></div></div>
+  <section class="panel"><div class="panel-h"><h2>On hand</h2><small>Stock value SAR <span class="num">${sar(value)}</span> at average cost</small></div>
+  ${S.items.length?`<div class="tbl"><table><thead><tr><th>Item</th><th class="r">In stock</th><th>Unit</th><th class="r">Minimum</th><th class="r">Avg cost</th><th class="r">Value</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`:'<p class="empty">Add the detergents, softeners and packing materials you track.</p>'}
+  </section>
+  <section class="panel"><div class="panel-h"><h2>Recent movements</h2></div>
+  ${mv.length?`<div class="tbl"><table><thead><tr><th>Date</th><th>Item</th><th>Movement</th><th class="r">Qty</th><th class="r">SAR</th><th></th></tr></thead><tbody>
+  ${mv.map(x=>{const it=byId('items',x.itemId);const sup=x.k==='in'?byId('suppliers',x.supplierId):null;return `<tr><td class="num">${fmtD(x.date)}</td><td>${esc(it?it.name:'Removed item')}</td><td>${x.k==='in'?'<span class="pill ok">+ Purchase</span>'+(sup?` <span class="hint">${esc(sup.name)}</span>`:''):'<span class="pill n">− Used</span>'}</td><td class="r num">${x.k==='in'?'+':'−'}${sar(x.qty,1)}</td><td class="r num">${sar(x.k==='in'?n(x.qty)*n(x.unitCost):x.cost,2)}</td><td class="r">${delBtn(x.k==='in'?'purchases':'consumption',x.id)}</td></tr>`}).join('')}</tbody></table></div>`:'<p class="empty">No movements yet.</p>'}
+  </section>`;
+}
+function vSuppliers(){
+  const pay=payables();
+  const owed={};pay.forEach(p=>owed[p.supplierId]=(owed[p.supplierId]||0)+p.bal);
+  const totalOwed=pay.reduce((s,p)=>s+p.bal,0);
+  return `${sampleBanner()}<div class="top"><div><h1>Suppliers &amp; payments</h1><p>What you owe, and when it is due</p></div>
+  <div class="actions"><button class="btn" data-act="addSupplier">+ Supplier</button><button class="btn primary" data-act="addPurchase">Record purchase</button></div></div>
+  <div class="kpis">
+   <div class="kpi"><label>Total payable</label><div class="v">${sar(totalOwed)}</div><div class="s">${pay.length} open invoices</div></div>
+   <div class="kpi"><label>Overdue</label><div class="v ${pay.some(p=>p.st==='overdue')?'neg':''}">${sar(pay.filter(p=>p.st==='overdue').reduce((s,p)=>s+p.bal,0))}</div><div class="s">${pay.filter(p=>p.st==='overdue').length} invoices</div></div>
+   <div class="kpi"><label>Due in 7 days</label><div class="v">${sar(pay.filter(p=>p.st==='due').reduce((s,p)=>s+p.bal,0))}</div><div class="s">${pay.filter(p=>p.st==='due').length} invoices</div></div>
+   <div class="kpi"><label>Suppliers</label><div class="v">${S.suppliers.length}</div><div class="s">on file</div></div>
+  </div>
+  <section class="panel"><div class="panel-h"><h2>Open invoices</h2></div>
+  ${pay.length?`<div class="tbl"><table><thead><tr><th>Due</th><th>Supplier</th><th>For</th><th class="r">Invoice</th><th class="r">Balance</th><th>Status</th><th></th></tr></thead><tbody>
+  ${pay.map(p=>{const sup=byId('suppliers',p.supplierId),it=byId('items',p.itemId);return `<tr><td class="num">${p.dueDate?fmtD(p.dueDate):'—'}</td><td>${esc(sup?sup.name:'—')}</td><td>${esc(it?it.name:'')} <span class="hint num">${sar(p.qty,1)} ${esc(it?it.unit:'')}</span></td><td class="r num">${sar(p.total,2)}</td><td class="r num">${sar(p.bal,2)}</td><td>${p.st==='overdue'?'<span class="pill bad">Overdue</span>':p.st==='due'?'<span class="pill warn">Due soon</span>':'<span class="pill n">Open</span>'}</td><td class="r"><button class="btn small" data-act="pay" data-id="${p.id}">Pay</button></td></tr>`}).join('')}</tbody></table></div>`:'<p class="empty">Nothing owed. Purchases with an unpaid balance appear here.</p>'}
+  </section>
+  <section class="panel"><div class="panel-h"><h2>Supplier list</h2></div>
+  ${S.suppliers.length?`<div class="tbl"><table><thead><tr><th>Name</th><th>Contact</th><th>Terms</th><th class="r">Owed</th><th></th></tr></thead><tbody>${S.suppliers.map(s=>`<tr><td>${esc(s.name)}</td><td class="num">${esc(s.phone||'')}</td><td>${n(s.terms)?sar(s.terms)+' days':'—'}</td><td class="r num">${sar(owed[s.id]||0,2)}</td><td class="r">${delBtn('suppliers',s.id)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="empty">Add the suppliers you buy materials from.</p>'}
+  </section>`;
+}
+function vReports(){
+  if(!rep.date)rep.date=today();
+  const[a,b]=range(rep.mode,rep.date);const m=metrics(a,b);
+  const days=diff(a,b)+1, prev=range(rep.mode,addDays(a,-1)), pm=metrics(prev[0],prev[1]);
+  const delta=(c,p)=>p?((c-p)/Math.abs(p)*100):0;
+  const dl=(c,p)=>{if(!p)return '<span class="hint">no previous data</span>';const d=delta(c,p);return `<span class="${d>=0?'pos':'neg'}">${d>=0?'▲':'▼'} ${sar(Math.abs(d),1)}%</span> vs previous`};
+  const label=rep.mode==='day'?fmtDL(a):rep.mode==='week'?fmtD(a)+' – '+fmtD(b)+' '+pd(b).getFullYear():MONTHS[pd(a).getMonth()]+' '+pd(a).getFullYear();
+  return `${sampleBanner()}<div class="top"><div><h1>Performance report</h1><p>${label}</p></div>
+  <div class="actions"><div class="seg" role="group" aria-label="Period">${['day','week','month'].map(k=>`<button data-act="mode" data-m="${k}" aria-pressed="${rep.mode===k}">${k==='day'?'Daily':k==='week'?'Weekly':'Monthly'}</button>`).join('')}</div>
+  <button class="btn" data-act="shift" data-d="-1" aria-label="Previous period">‹</button><input type="date" id="repdate" value="${rep.date}" style="width:auto"><button class="btn" data-act="shift" data-d="1" aria-label="Next period">›</button>
+  <button class="btn" data-act="exportCsv">Export CSV</button></div></div>
+  <div class="kpis">
+   <div class="kpi"><label>Revenue</label><div class="v">${sar(m.revenue)}</div><div class="s">${dl(m.revenue,pm.revenue)}</div></div>
+   <div class="kpi"><label>Total costs</label><div class="v">${sar(m.cost)}</div><div class="s">${dl(m.cost,pm.cost)}</div></div>
+   <div class="kpi"><label>Net profit</label><div class="v ${m.net>=0?'pos':'neg'}">${sar(m.net)}</div><div class="s">margin ${sar(m.margin,1)}%</div></div>
+   <div class="kpi"><label>Pieces processed</label><div class="v">${sar(m.pieces)}</div><div class="s">avg SAR ${sar(m.pieces?m.revenue/m.pieces:0,2)} / piece${days>1?' · '+sar(m.revenue/days)+' / day':''}</div></div>
+  </div>
+  ${days>1?`<section class="panel"><div class="panel-h"><h2>Day by day</h2></div>${trendChart(a,b)}</section>`:''}
+  <div class="grid2">
+   <section class="panel"><div class="panel-h"><h2>${rep.mode==='day'?'Daily balance':'Income statement'}</h2><small>SAR</small></div><div class="tbl">${statement(m)}</div></section>
+   <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+    <section class="panel"><div class="panel-h"><h2>Sales by service</h2></div>${barList(m.bySvc,'total',v=>sar(v.total))}</section>
+    <section class="panel"><div class="panel-h"><h2>Materials used</h2></div>${barList(m.byItem,'cost',v=>sar(v.qty,1)+' '+esc(v.unit)+' · '+sar(v.cost))}</section>
+   </div>
+  </div>`;
+}
+function delBtn(col,id){return `<button class="btn small ghost" data-act="del" data-col="${col}" data-id="${id}" aria-label="Delete">✕</button>`}
+
+function render(){
+  renderNav();
+  const fn={dash:vDash,sales:vSales,expenses:vExpenses,stock:vStock,suppliers:vSuppliers,reports:vReports}[view];
+  $('#view').innerHTML=fn();
+  const rd=$('#repdate');if(rd)rd.onchange=()=>{if(rd.value){rep.date=rd.value;render()}};
+}
+let rq=0;function schedule(){if(rq)return;rq=requestAnimationFrame(()=>{rq=0;render()})}
+
+/* ---------- forms ---------- */
+function openForm({title,fields,submit,onInput,note}){
+  const m=$('#modal');
+  m.innerHTML=`<div class="scrim"><form class="sheet" id="sheet" novalidate><div class="panel-h" style="margin:0"><h2>${esc(title)}</h2><button type="button" class="btn small ghost" data-close aria-label="Close">✕</button></div>
+  ${note?`<p class="hint" style="margin:0">${note}</p>`:''}
+  <div class="fields">${fields.map(f=>{
+    const id='f_'+f.id, req=f.req!==false?'required':'';
+    let inp;
+    if(f.type==='select')inp=`<select id="${id}" ${req}>${f.options.map(o=>`<option value="${esc(o[0])}" ${String(o[0])===String(f.value??'')?'selected':''}>${esc(o[1])}</option>`).join('')}</select>`;
+    else if(f.type==='textarea')inp=`<textarea id="${id}" placeholder="${esc(f.ph||'')}">${esc(f.value||'')}</textarea>`;
+    else if(f.type==='file')inp=`<input type="file" id="${id}" accept="${f.accept||''}">`;
+    else inp=`<input id="${id}" type="${f.type||'text'}" ${f.type==='number'?`step="${f.step||'any'}" min="0" inputmode="decimal"`:''} value="${esc(f.value??'')}" placeholder="${esc(f.ph||'')}" ${req}>`;
+    return `<div class="field ${f.full?'full':''}"><label for="${id}">${esc(f.label)}</label>${inp}${f.hint?`<span class="hint" id="${id}_h">${f.hint}</span>`:''}</div>`}).join('')}</div>
+  <div class="err" id="ferr"></div>
+  <div class="sheet-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit" id="fsave">Save</button></div></form></div>`;
+  const vals=()=>{const o={};fields.forEach(f=>{const el=$('#f_'+f.id);o[f.id]=f.type==='file'?el.files[0]:el.value});return o};
+  const close=()=>{m.innerHTML='';schedule()};
+  m.querySelectorAll('[data-close]').forEach(b=>b.onclick=close);
+  m.querySelector('.scrim').addEventListener('click',e=>{if(e.target.classList.contains('scrim'))close()});
+  const form=$('#sheet');
+  if(onInput){form.addEventListener('input',e=>onInput(vals(),e.target.id));onInput(vals(),'')}
+  form.addEventListener('submit',async e=>{e.preventDefault();$('#ferr').textContent='';
+    if(!db){$('#ferr').textContent='Not connected. Sign in again and retry.';return}
+    const v=vals();
+    for(const f of fields){if(f.req!==false&&f.type!=='file'&&!String(v[f.id]).trim()){$('#ferr').textContent=f.label+' is required.';$('#f_'+f.id).focus();return}}
+    const btn=$('#fsave');btn.disabled=true;btn.textContent='Saving…';
+    try{const msg=await submit(v);close();toast(msg||'Saved')}
+    catch(err){btn.disabled=false;btn.textContent='Save';$('#ferr').textContent=err&&err.userMsg?err.userMsg:(err&&err.code==='quota_exceeded'?'Storage is full. Delete old records and try again.':'Could not save. Check your connection and try again.')}
+  });
+  const first=form.querySelector('input,select,textarea');if(first)first.focus();
+}
+function writeOp(p,label){p.catch(e=>{console.warn(e);toast((label||'Entry')+' was not saved: '+(e&&e.code==='permission-denied'?'this account has no access.':'please try again.'))})}
+const add=(col,data)=>{const ref=db.collection(col).doc();writeOp(ref.set({...data,createdAt:new Date().toISOString(),by:user?user.email:''}));return Promise.resolve(ref)};
+const upd=(col,id,data)=>{writeOp(db.collection(col).doc(id).update(data),'Change');return Promise.resolve()};
+const rm=(col,id)=>{writeOp(db.collection(col).doc(id).delete(),'Delete');return Promise.resolve()};
+const fail=msg=>{const e=new Error(msg);e.userMsg=msg;return e};
+const itemOpts=()=>[...S.items].sort((a,b)=>a.name.localeCompare(b.name)).map(i=>[i.id,i.name+' ('+i.unit+')']);
+const supOpts=()=>S.suppliers.map(s=>[s.id,s.name]);
+
+const ACT={
+  addSale(){
+    const svc=[...S.services].sort((a,b)=>a.name.localeCompare(b.name));
+    openForm({title:'Record sale',fields:[
+      {id:'date',label:'Date',type:'date',value:today()},
+      svc.length?{id:'service',label:'Service',type:'select',options:svc.map(s=>[s.name,s.name])}:{id:'service',label:'Service',ph:'e.g. Wash & Fold'},
+      {id:'qty',label:'Quantity (pieces / kg)',type:'number',value:''},
+      {id:'price',label:'Unit price (SAR)',type:'number',value:svc[0]?svc[0].price:''},
+      {id:'total',label:'Total (SAR)',type:'number',req:false,hint:'Calculated from quantity × price. Edit it to match the POS if a discount applied.'}],
+     onInput(v,id){if(id==='f_service'){const s=S.services.find(x=>x.name===v.service);if(s)$('#f_price').value=s.price}
+       if(id!=='f_total'){const q=n($('#f_qty').value),p=n($('#f_price').value);$('#f_total').value=q&&p?(q*p).toFixed(2):''}},
+     async submit(v){const q=n(v.qty),p=n(v.price);if(q<=0)throw fail('Enter a quantity above zero.');const t=v.total!==''?n(v.total):q*p;
+       await add('sales',{date:v.date,service:v.service.trim(),qty:q,price:p,total:+t.toFixed(2),source:'Manual'});return 'Sale recorded'}});
+  },
+  importPos(){
+    openForm({title:'Import POS sales',note:'Export the day’s item sales from your POS as CSV, then choose the file or paste its rows. Columns: <b>date, service, qty, price</b> (an optional fifth column <b>total</b> overrides qty × price). Dates as YYYY-MM-DD. A header row is skipped.',
+     fields:[{id:'file',label:'CSV file',type:'file',accept:'.csv,text/csv,text/plain',req:false,full:true},
+       {id:'text',label:'Or paste rows',type:'textarea',req:false,full:true,ph:'2026-10-18,Wash & Fold,42,8\n2026-10-18,Thobe Wash & Iron,30,7'}],
+     async submit(v){
+       let txt=v.text||'';if(v.file)txt=await v.file.text();
+       const rows=txt.split(/\r?\n/).map(l=>l.split(/[,;\t]/).map(x=>x.trim().replace(/^"|"$/g,''))).filter(r=>r.length>=4&&/^\d{4}-\d{2}-\d{2}$/.test(r[0]));
+       if(!rows.length)throw fail('No rows found. Each line needs date, service, qty, price with the date as YYYY-MM-DD.');
+       let k=0;for(const r of rows){const q=n(r[2]),p=n(r[3]),t=r[4]!==undefined&&r[4]!==''?n(r[4]):q*p;await add('sales',{date:r[0],service:r[1],qty:q,price:p,total:+t.toFixed(2),source:'POS'});k++;
+         if(!S.services.some(s=>s.name.toLowerCase()===r[1].toLowerCase())&&p>0){S.services.push({id:'tmp'+k,name:r[1],price:p});await add('services',{name:r[1],price:p})}}
+       return 'Imported '+k+' sales lines'}});
+  },
+  addService(){openForm({title:'Add service',fields:[{id:'name',label:'Service name',ph:'e.g. Curtain wash',full:true},{id:'price',label:'Price (SAR)',type:'number'}],
+    async submit(v){await add('services',{name:v.name.trim(),price:n(v.price)});return 'Service added'}})},
+  addExp(){
+    openForm({title:'Add expense',fields:[
+      {id:'category',label:'Category',type:'select',options:EXP_CATS.map(c=>[c,c==='Salaries'?'Labor salaries':c])},
+      {id:'amount',label:'Amount (SAR)',type:'number'},
+      {id:'date',label:'Date',type:'date',value:today()},
+      {id:'period',label:'Applies to',type:'select',options:[['month','Whole month (spread daily)'],['once','That day only']],value:'month'},
+      {id:'usage',label:'Usage (optional)',type:'number',req:false,hint:'m³ for water, kWh for electricity'},
+      {id:'note',label:'Note',req:false,ph:'e.g. SEC bill Oct'}],
+     onInput(v,id){if(id==='f_category'||id===''){$('#f_period').value=['Maintenance','Other'].includes(v.category)?'once':'month'}},
+     async submit(v){if(n(v.amount)<=0)throw fail('Enter an amount above zero.');await add('expenses',{category:v.category,amount:n(v.amount),date:v.date,period:v.period,usage:n(v.usage)||null,note:v.note.trim()});return 'Expense added'}});
+  },
+  addItem(){openForm({title:'New stock item',fields:[
+      {id:'name',label:'Item name',ph:'e.g. Liquid detergent',full:true},
+      {id:'unit',label:'Unit',type:'select',options:[['L','Litre (L)'],['kg','Kilogram (kg)'],['pcs','Pieces (pcs)'],['box','Box'],['roll','Roll']]},
+      {id:'min',label:'Minimum stock (alert level)',type:'number'},
+      {id:'opening',label:'Opening stock',type:'number',value:'0'},
+      {id:'cost',label:'Cost per unit (SAR)',type:'number',hint:'Used until the first purchase is recorded'}],
+    async submit(v){await add('items',{name:v.name.trim(),unit:v.unit,min:n(v.min),opening:n(v.opening),cost:n(v.cost)});return 'Item added'}})},
+  addPurchase(){
+    if(!S.items.length){toast('Add a stock item first');return}
+    if(!S.suppliers.length){toast('Add a supplier first');return}
+    openForm({title:'Record purchase',fields:[
+      {id:'itemId',label:'Item',type:'select',options:itemOpts(),full:true},
+      {id:'supplierId',label:'Supplier',type:'select',options:supOpts()},
+      {id:'date',label:'Invoice date',type:'date',value:today()},
+      {id:'qty',label:'Quantity',type:'number'},
+      {id:'unitCost',label:'Unit cost (SAR)',type:'number'},
+      {id:'paid',label:'Paid now (SAR)',type:'number',value:'0',req:false},
+      {id:'dueDate',label:'Payment due date',type:'date',req:false}],
+     onInput(v,id){if(id==='f_itemId'||id===''){const it=byId('items',v.itemId);if(it&&!$('#f_unitCost').value)$('#f_unitCost').value=avgCost(it).toFixed(2)}
+       if(id==='f_supplierId'||id==='f_date'||id===''){const s=byId('suppliers',v.supplierId);if(s&&n(s.terms)&&v.date)$('#f_dueDate').value=addDays(v.date,n(s.terms))}},
+     async submit(v){if(n(v.qty)<=0)throw fail('Enter a quantity above zero.');const tot=n(v.qty)*n(v.unitCost);
+       await add('purchases',{itemId:v.itemId,supplierId:v.supplierId,date:v.date,qty:n(v.qty),unitCost:n(v.unitCost),paid:Math.min(tot,n(v.paid)),dueDate:v.dueDate||''});return 'Purchase added to stock'}});
+  },
+  addCons(){
+    if(!S.items.length){toast('Add a stock item first');return}
+    openForm({title:'Record materials used',fields:[
+      {id:'itemId',label:'Item',type:'select',options:itemOpts(),full:true},
+      {id:'qty',label:'Quantity used',type:'number'},
+      {id:'date',label:'Date',type:'date',value:today()}],
+     onInput(v){const it=byId('items',v.itemId);const h=$('#f_qty_h');if(it){const el=$('#f_qty').closest('.field');let hh=el.querySelector('.hint');if(!hh){hh=document.createElement('span');hh.className='hint';el.appendChild(hh)}hh.textContent='In stock: '+sar(stockOf(it),1)+' '+it.unit+' · SAR '+sar(avgCost(it),2)+' per '+it.unit}},
+     async submit(v){const it=byId('items',v.itemId),q=n(v.qty);if(q<=0)throw fail('Enter a quantity above zero.');
+       await add('consumption',{itemId:v.itemId,qty:q,date:v.date,cost:+(q*avgCost(it)).toFixed(2)});
+       const left=stockOf(it)-q;return left<=n(it.min)?'Saved. '+it.name+' is now below minimum':'Usage recorded'}});
+  },
+  addSupplier(){openForm({title:'Add supplier',fields:[{id:'name',label:'Company name',full:true},{id:'phone',label:'Phone',type:'tel',req:false},{id:'terms',label:'Payment terms (days)',type:'number',req:false,value:'30'}],
+    async submit(v){await add('suppliers',{name:v.name.trim(),phone:v.phone.trim(),terms:n(v.terms)});return 'Supplier added'}})},
+  pay(d){const p=payables().find(x=>x.id===d.id);if(!p)return;const sup=byId('suppliers',p.supplierId);
+    openForm({title:'Pay '+(sup?sup.name:'supplier'),note:'Balance on this invoice: SAR <b class="num">'+sar(p.bal,2)+'</b>',fields:[{id:'amount',label:'Amount paid (SAR)',type:'number',value:p.bal.toFixed(2)}],
+     async submit(v){const a=n(v.amount);if(a<=0)throw fail('Enter an amount above zero.');await upd('purchases',p.id,{paid:+Math.min(p.total,n(p.paid)+a).toFixed(2),lastPaid:today()});return a>=p.bal-0.005?'Invoice settled':'Part payment recorded'}})},
+  async del(d,btn){
+    if(!db)return;
+    if(btn.dataset.armed!=='1'){btn.dataset.armed='1';btn.textContent='Delete?';btn.classList.remove('ghost');btn.classList.add('danger');setTimeout(()=>{if(btn.isConnected){btn.dataset.armed='';btn.textContent='✕';btn.classList.add('ghost');btn.classList.remove('danger')}},3000);return}
+    await rm(d.col,d.id);toast('Deleted')
+  },
+  async clearSamples(d,btn){
+    if(btn.dataset.armed!=='1'){btn.dataset.armed='1';btn.textContent='Yes, delete all examples';btn.classList.add('danger');return}
+    btn.disabled=true;btn.textContent='Clearing…';
+    const b=db.batch();COLS.forEach(c=>S[c].filter(x=>x.sample).forEach(x=>b.delete(db.collection(c).doc(x.id))));writeOp(b.commit(),'Clear');toast('Example data cleared')
+  },
+  mode(d){rep.mode=d.m;render()},
+  shift(d){const k=+d.d;rep.date=rep.mode==='day'?addDays(rep.date,k):rep.mode==='week'?addDays(rep.date,7*k):(()=>{const x=pd(rep.date);return ymd(new Date(x.getFullYear(),x.getMonth()+k,1))})();render()},
+  signOut(){auth.signOut()},
+  loadSamples(d,btn){btn.disabled=true;const b=db.batch();sampleWrites().forEach(([c,id,data])=>b.set(db.collection(c).doc(id),data));writeOp(b.commit(),'Example data');toast('Example data loaded')},
+  async exportCsv(){
+    const[a,b]=range(rep.mode,rep.date);const lines=[['Date','Revenue','Pieces','Materials','Water','Electricity','Salaries','Rent','Maintenance','Other','Total costs','Net']];
+    for(let x=a;x<=b;x=addDays(x,1)){const m=metrics(x,x);lines.push([x,m.revenue,m.pieces,m.consCost,...EXP_CATS.map(c=>m.exp[c]),m.cost,m.net].map(v=>typeof v==='number'?v.toFixed(2):v))}
+    const m=metrics(a,b);lines.push(['TOTAL',m.revenue,m.pieces,m.consCost,...EXP_CATS.map(c=>m.exp[c]),m.cost,m.net].map(v=>typeof v==='number'?v.toFixed(2):v));
+    const name=`laundry-${rep.mode}-${a}.csv`, csv=lines.map(r=>r.join(',')).join('\n');
+    if(window.AndroidBridge&&AndroidBridge.saveFile){toast(AndroidBridge.saveFile(name,csv)?'Saved to Downloads: '+name:'Could not save the file');return}
+    const el=document.createElement('a');el.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));el.download=name;document.body.appendChild(el);el.click();el.remove();toast('Report downloaded')
+  }
+};
+
+/* ---------- example data (generated relative to today) ---------- */
+function sampleWrites(){
+  const W=[], t=today(), now=new Date().toISOString();
+  const w=(c,id,d)=>W.push([c,'x-'+id,{...d,sample:true,createdAt:now}]);
+  const svcs=[['Wash & Fold (kg)',8,70,110],['Thobe Wash & Iron',7,30,55],['Shirt Iron',4,25,50],['Dry Clean Suit',35,3,9],['Blanket Wash',30,2,6]];
+  svcs.forEach((s,k)=>w('services','svc'+k,{name:s[0],price:s[1]}));
+  [['det','Liquid detergent','L',25,40,6.5],['sof','Fabric softener','L',15,25,5.2],['blc','Bleach','L',8,6,3.1],['stn','Stain remover','L',4,5,18],['bag','Garment bags','pcs',200,600,0.35],['hng','Hangers','pcs',150,180,0.4]]
+    .forEach(i=>w('items','it-'+i[0],{name:i[1],unit:i[2],min:i[3],opening:i[4],cost:i[5]}));
+  w('suppliers','sup-noor',{name:'Al Noor Chemicals',phone:'+966 11 000 0000',terms:30});
+  w('suppliers','sup-gulf',{name:'Gulf Packaging Co.',phone:'+966 11 000 0001',terms:15});
+  w('purchases','pu1',{itemId:'x-it-det',supplierId:'x-sup-noor',date:addDays(t,-28),qty:60,unitCost:6.4,paid:0,dueDate:addDays(t,2)});
+  w('purchases','pu2',{itemId:'x-it-sof',supplierId:'x-sup-noor',date:addDays(t,-10),qty:40,unitCost:5.2,paid:100,dueDate:addDays(t,20)});
+  w('purchases','pu3',{itemId:'x-it-bag',supplierId:'x-sup-gulf',date:addDays(t,-20),qty:1000,unitCost:0.32,paid:120,dueDate:addDays(t,-5)});
+  w('purchases','pu4',{itemId:'x-it-blc',supplierId:'x-sup-noor',date:addDays(t,-16),qty:20,unitCost:3.1,paid:62,dueDate:addDays(t,14)});
+  const ms=monthStart(t), mon=MONTHS[pd(t).getMonth()];
+  w('expenses','ex1',{category:'Rent',amount:6000,date:ms,period:'month',note:'Shop rent '+mon});
+  w('expenses','ex2',{category:'Salaries',amount:9600,date:ms,period:'month',note:'4 staff '+mon});
+  w('expenses','ex3',{category:'Electricity',amount:2350,date:ms,period:'month',usage:12500,note:'SEC bill '+mon});
+  w('expenses','ex4',{category:'Water',amount:980,date:ms,period:'month',usage:145,note:'Water bill '+mon});
+  w('expenses','ex5',{category:'Maintenance',amount:420,date:addDays(t,-4),period:'once',note:'Dryer belt replaced'});
+  w('expenses','ex6',{category:'Other',amount:150,date:addDays(t,-7),period:'once',note:'Cleaning supplies'});
+  let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+  for(let d=9;d>=0;d--){const ds=addDays(t,-d), fri=pd(ds).getDay()===5;
+    svcs.forEach((s,k)=>{let q=Math.round(s[2]+rnd()*(s[3]-s[2]));if(fri)q=Math.round(q*0.6);w('sales','sa'+d+'-'+k,{date:ds,service:s[0],qty:q,price:s[1],total:q*s[1],source:'POS'})});
+    [['det',6.45,4,7],['sof',5.2,2,4]].forEach(c=>{const q=Math.round((c[2]+rnd()*(c[3]-c[2]))*10)/10;w('consumption','co'+d+c[0],{itemId:'x-it-'+c[0],qty:q,date:ds,cost:+(q*c[1]).toFixed(2)})});
+    if(d%3===0)w('consumption','co'+d+'bag',{itemId:'x-it-bag',qty:60,date:ds,cost:19.8});
+  }
+  return W;
+}
+
+/* ---------- Android back button ---------- */
+window.onAndroidBack=function(){
+  const m=$('#modal');
+  if(m.firstChild){m.innerHTML='';render();return 'handled'}
+  if(!$('#gate').hidden)return 'exit';
+  if(view!=='dash'){view='dash';render();window.scrollTo(0,0);return 'handled'}
+  return 'exit';
+};
+
+/* ---------- sign-in and shop connection ---------- */
+const BRAND=document.querySelector('.brand').outerHTML;
+function gate(kind,msg){
+  $('#app').hidden=true;$('#tabbar').hidden=true;$('#modal').innerHTML='';
+  const g=$('#gate');g.hidden=false;
+  if(kind==='nofb'){g.innerHTML=`<div class="gate-card">${BRAND}<h1>App files are incomplete</h1><p>The Firebase library did not load. Rebuild the app with the GitHub workflow, which adds these files automatically.</p></div>`;return}
+  if(kind==='setup'){
+    g.innerHTML=`<form class="gate-card" id="gform" novalidate>${BRAND}<h1>Connect your shop</h1>
+      <p>Paste your shop's Firebase settings. You do this once on each phone.</p>
+      <ol><li>Open console.firebase.google.com and choose your project.</li><li>Project settings → Your apps → Web app → SDK setup and configuration → Config.</li><li>Copy the whole <span class="num">firebaseConfig</span> block and paste it below.</li></ol>
+      <div class="field"><label for="g_cfg">Firebase settings</label><textarea id="g_cfg" placeholder='const firebaseConfig = {&#10;  apiKey: "…",&#10;  authDomain: "…",&#10;  projectId: "…",&#10;  appId: "…"&#10;};'></textarea></div>
+      <div class="err" id="gerr">${esc(msg||'')}</div><button class="btn primary" type="submit">Connect</button></form>`;
+    $('#gform').onsubmit=e=>{e.preventDefault();
+      const txt=$('#g_cfg').value, cfg={};
+      ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId'].forEach(k=>{const m=txt.match(new RegExp('["\']?'+k+'["\']?\\s*:\\s*["\']([^"\']+)["\']'));if(m)cfg[k]=m[1]});
+      if(!cfg.apiKey||!cfg.projectId||!cfg.appId){$('#gerr').textContent='That text is missing apiKey, projectId or appId. Copy the full firebaseConfig block from Firebase.';return}
+      try{localStorage.setItem('lc_fb',JSON.stringify(cfg))}catch(err){}
+      location.reload();
+    };
+    return;
+  }
+  // login
+  let proj='';try{proj=JSON.parse(localStorage.getItem('lc_fb')).projectId}catch(e){}
+  g.innerHTML=`<form class="gate-card" id="gform" novalidate>${BRAND}<h1>Sign in</h1>
+    <p>Use the email and password the owner created for you.</p>
+    <div class="field"><label for="g_email">Email</label><input id="g_email" type="email" autocomplete="username" inputmode="email"></div>
+    <div class="field"><label for="g_pass">Password</label><input id="g_pass" type="password" autocomplete="current-password"></div>
+    <div class="err" id="gerr">${esc(msg||'')}</div>
+    <button class="btn primary" type="submit" id="g_go">Sign in</button>
+    <p class="acct"><span>Shop: <b class="num">${esc(proj)}</b></span><button type="button" class="linkbtn" id="g_reset">Connect a different shop</button></p></form>`;
+  $('#g_reset').onclick=()=>{try{localStorage.removeItem('lc_fb')}catch(e){}location.reload()};
+  $('#gform').onsubmit=async e=>{e.preventDefault();const b=$('#g_go');b.disabled=true;b.textContent='Signing in…';$('#gerr').textContent='';
+    try{await auth.signInWithEmailAndPassword($('#g_email').value.trim(),$('#g_pass').value)}
+    catch(err){const c=err&&err.code||'';b.disabled=false;b.textContent='Sign in';
+      $('#gerr').textContent=/invalid-credential|wrong-password|user-not-found|invalid-email|invalid-login/.test(c)?'Email or password is incorrect.':c.includes('network')?'No internet connection. Sign-in needs a connection the first time.':c.includes('too-many')?'Too many attempts. Wait a few minutes and try again.':c.includes('api-key')||c.includes('configuration')?'The Firebase settings are not valid. Tap “Connect a different shop” and paste them again.':'Could not sign in ('+c+').'}
+  };
+}
+function stopSubs(){subs.forEach(u=>u());subs=[];COLS.forEach(c=>S[c]=[])}
+function startSubs(){
+  stopSubs();dbErr='';
+  COLS.forEach(c=>subs.push(db.collection(c).onSnapshot(snap=>{S[c]=snap.docs.map(d=>({id:d.id,...d.data()}));schedule()},
+    err=>{console.warn(c,err);dbErr=err&&err.code==='permission-denied'?'This account cannot read the shop records. Check the Firestore security rules in the setup guide.':'Some records could not load. Pull down or reopen the app to retry.';schedule()})));
+}
+window.addEventListener('online',schedule);window.addEventListener('offline',schedule);
+
+(function boot(){
+  if(!window.firebase){gate('nofb');return}
+  let cfg=null;try{cfg=JSON.parse(localStorage.getItem('lc_fb')||'null')}catch(e){}
+  if(!cfg){gate('setup');return}
+  try{firebase.apps.length||firebase.initializeApp(cfg)}catch(e){gate('setup','Those settings could not be used: '+e.message);return}
+  auth=firebase.auth();db=firebase.firestore();
+  try{db.enablePersistence({synchronizeTabs:true}).catch(()=>{})}catch(e){}
+  auth.onAuthStateChanged(u=>{
+    user=u;
+    if(!u){stopSubs();gate('login');return}
+    $('#gate').hidden=true;$('#gate').innerHTML='';$('#app').hidden=false;$('#tabbar').hidden=false;
+    startSubs();render();
+  });
+})();
+})();
+</script>
+</body></html>
